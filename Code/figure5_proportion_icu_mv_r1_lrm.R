@@ -266,28 +266,72 @@ plot_proportion_age_icu_mv_south <-
 
 
 
+combined_plot_A <- ggpubr::ggarrange(plot_proportion_age_icu_mv_north,
+                                     plot_proportion_age_icu_mv_northeast,
+                                     plot_proportion_age_icu_mv_central_west,
+                                     # plot_proportion_age_icu_mv_southeast,
+                                     # plot_proportion_age_icu_mv_south,
+                                     nrow = 1,
+                                     ncol = 3,
+                                     align = "v",
+                                     # common.legend = TRUE, 
+                                     legend = "top", 
+                                     font.label = list(size = 8))
 
-combined_plot_region_prop <- 
-  ggpubr::ggarrange(plot_proportion_age_icu_mv_north,
-                    plot_proportion_age_icu_mv_northeast,
-                    plot_proportion_age_icu_mv_central_west,
-                    plot_proportion_age_icu_mv_southeast,
-                    plot_proportion_age_icu_mv_south,
-                    nrow = 2,
-                    ncol = 3,
-                    align = "v",
-                    # common.legend = TRUE, 
-                    legend = "top", 
-                    font.label = list(size = 8))
+
+
+combined_plot_B <- ggpubr::ggarrange(plot_proportion_age_icu_mv_southeast,
+                                     plot_proportion_age_icu_mv_south,
+                                     nrow = 1,
+                                     ncol = 2,
+                                     align = "v",
+                                     # common.legend = TRUE,
+                                     legend = "top",
+                                     font.label = list(size = 8)) +
+  theme(plot.margin = unit(c(0,110,0,110), "pt"))
+
+
+###### Auxiliary - Example plot with gray legend (Auxiliary plot variable)
+plot_prop_legend <-
+  df_proportion_age %>%
+  filter(REGIAO == "South") %>% 
+  ggplot() +
+  geom_col(aes(x = FAIXA_IDADE, y = prop, fill = type), position = "dodge") +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1L), limits = c(NA, 0.6), 
+                     breaks = seq(0, 0.6, 0.1)
+  ) +
+  scale_fill_manual(name = "", 
+                    values = c("#1B1919B2",
+                               "#1B191966"),
+                    labels = c("ICU", "Invasive ventilation")
+  ) +
+  labs(x = "Age (years)", title = "South", y = "Proportion") +
+  theme_bw() +
+  theme(legend.position = "bottom",
+        legend.text = element_text(size = 14))
+
+# get legend model
+legend <- cowplot::get_legend(plot_prop_legend)
+
+
+# combine plots and legend
+combined_plot_region_prop <-
+  ggpubr::ggarrange(
+    combined_plot_A,
+    combined_plot_B,
+    legend,
+    nrow = 3,
+    heights = c(1, 1, 0.05),
+    legend.grob = legend,
+    legend = "bottom",
+    font.label = list(size = 8)
+    )
 
 
 
 ggsave("Outputs/Figures/Figure5_ICU_MV_Proportion.pdf",
        combined_plot_region_prop,
        units = "in", dpi = 800, height = 9, width = 13)
-
-
-
 
 
 
@@ -558,29 +602,6 @@ ggsave("Outputs/Figures/sensitivity_ICU_MV_Proportion.png",
 
 
 
-## Auxiliary - Example plot with gray legend (Auxiliary plot variable)
-plot_prop_legend <-
-  df_proportion_age %>%
-  filter(REGIAO == "South") %>% 
-  ggplot() +
-  geom_col(aes(x = FAIXA_IDADE, y = prop, fill = type), position = "dodge") +
-  scale_y_continuous(labels = scales::percent_format(accuracy = 1L), limits = c(NA, 0.6), 
-                     breaks = seq(0, 0.6, 0.1)
-  ) +
-  scale_fill_manual(name = "", 
-                    values = c("#1B1919B2",
-                               "#1B191966"),
-                    labels = c("ICU", "Invasive ventilation")
-  ) +
-  labs(x = "Age (years)", title = "South", y = "Proportion") +
-  theme_bw() +
-  theme(legend.position = "bottom",
-        legend.text = element_text(size = 14))
-
-
-ggsave("Outputs/Figures/legend_aux.png",
-       plot_prop_legend,
-       units = "in", dpi = 800, height = 2, width = 4)
 
 
 # finished
