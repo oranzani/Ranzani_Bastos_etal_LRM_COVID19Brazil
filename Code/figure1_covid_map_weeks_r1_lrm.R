@@ -1,20 +1,27 @@
 #################################### #################################### #################################
 #################################### #################################### #################################
 #################################### #################################### #################################
-### Article Characterizing the first 200,000 hospitalizations for COVID-19 in Brazil: a nationwide study ##
+### Article Characterizing the first 200,000 hospitalizations for COVID-19 in Brazil:an analysis of      ## 
+###             nationwide data                                                                          ##
 ### Coding Otavio Ranzani, Leonardo Bastos, João Gabriel Gelli                                           ##
 ### October 2020                                                                                         ##
 ###                                                                                                      ##
-## Figure 1. Epidemic evolution showed during three-time frames in Brazil                                ##    
+### Figure 1. Epidemic evolution shown in three-time frames in Brazil in terms of reported               ##
+###     confirmed COVID-19 cases, hospitalisations, and in-hospital deaths.                              ##    
 #################################### #################################### #################################
 #################################### #################################### #################################
 #################################### #################################### #################################
+
+
+
 
 # Libraries ---------------------------------------------------------------
 library(tidyverse)
 library(tidylog)
 library(geobr)
 library(sf)
+
+
 
 
 # Input data --------------------------------------------------------------
@@ -119,265 +126,214 @@ ls_srag_adults_pcr_deaths_plots <- list() # Plots with COVID-19 in-hospital deat
 for (w in seq_along(ls_weeks)) {
 
 ## COVID-19 confirmed cases (Brasil.IO - Brazilian Health secretaries)
-
+    
 # Sets current week in the loop
-weeks <- ls_weeks[[w]]
-
-df_covid_cases_week <- 
-    df_covid_cases_total %>% 
-    filter(between(epidemiological_week, weeks[1], weeks[2])) %>%
-    group_by(city_ibge_code) %>%
-    filter(new_confirmed >= 0) %>% 
-    summarise(cases = sum(new_confirmed)) %>%
-    ungroup() %>% 
-    mutate(had_covid = 1) 
-
-df_map_covid_cases <- 
-    shp_brasil_mun_centr %>% 
-    left_join(
-        df_covid_cases_week,
-        by = c("code_muni" = "city_ibge_code")
+    weeks <- ls_weeks[[w]]
+    
+    df_covid_cases_week <- 
+        df_covid_cases_total %>% 
+        filter(between(epidemiological_week, weeks[1], weeks[2])) %>%
+        group_by(city_ibge_code) %>%
+        filter(new_confirmed >= 0) %>% 
+        summarise(cases = sum(new_confirmed)) %>%
+        ungroup() %>% 
+        mutate(had_covid = 1) 
+    
+    df_map_covid_cases <- 
+        shp_brasil_mun_centr %>% 
+        left_join(
+            df_covid_cases_week,
+            by = c("code_muni" = "city_ibge_code")
+            ) %>% 
+        mutate(
+            had_covid = ifelse(is.na(had_covid), 0, 1),
+            cases = ifelse(is.na(cases) | cases == 0, NA, cases)
+            ) %>% 
+        arrange(cases)
+    
+    
+    plot_map_covid_cases <-
+        df_map_covid_cases %>%
+        ggplot() +
+        geom_sf(color = NA, fill = NA) +
+        geom_point(
+            aes(
+                y = latitude, x = longitude,
+                size = cases, fill = cases
+                ),
+            stroke = 0.2, shape = 21, alpha = 0.9) +
+        scale_size_continuous(
+            breaks = c(200, 1000, 5000, 25000, 55000),
+            limit = c(1, 60000),
+            name = "",
+            labels = scales::comma_format()
+            ) +
+        scale_fill_gradient(
+            breaks = c(200, 1000, 5000, 25000, 55000),
+            limit = c(1, 60000),
+            low = "paleturquoise1",
+            high = "navyblue",
+            name = "",
+            labels = scales::comma_format(),
+            guide = "legend"
+            ) +
+        geom_sf(data = shp_brasil_reg, fill = NA, size = 0.4) +
+        geom_sf(data = shp_brasil_uf, fill = NA, size = 0.1) +
+        labs(
+            title = paste0("Epidemiological weeks ", weeks[1], "-", weeks[2])
+             ) +
+        coord_sf(xlim = c(NA, -33), expand = FALSE) +
+        theme_void() +
+        theme(
+            title = element_text(size = 6),
+            plot.title = element_text(hjust = 0.5),
+            plot.margin = unit(c(-0.1, -0.10, 0, -0.1), "cm"),
+            legend.text = element_text(size = 7)
+            ) 
+    
+    
+        ls_covid_plots[[w]] <- plot_map_covid_cases
+    
+        
+        
+        
+        
+        
+        
+        
+        
+### Map: COVID-19 Hospitalizations (SARI database)
+        
+    df_srag_adults_pcr_week <- 
+        srag_adults_pcr %>%
+        mutate(epi_week = lubridate::epiweek(date_int)) %>% 
+        filter(between(epi_week, weeks[1], weeks[2])) %>% 
+        group_by(CO_MU_INTE) %>%
+        summarise(notif = n()) %>%
+        ungroup() %>% 
+        mutate(had_covid = 1)
+    
+    
+    df_map_srag_adults_pcr <- 
+        shp_brasil_mun_centr %>%
+        mutate(code_muni_6dig = str_sub(code_muni, 1, 6)) %>%
+        left_join(df_srag_adults_pcr_week %>%
+                      mutate_at("CO_MU_INTE", as.character),
+                  by = c("code_muni_6dig" = "CO_MU_INTE")
+                  ) %>% 
+        mutate(had_covid = ifelse(is.na(had_covid), 0, 1),
+               notif = ifelse(is.na(notif) | notif == 0, NA, notif)
         ) %>% 
-    mutate(
-        had_covid = ifelse(is.na(had_covid), 0, 1),
-        cases = ifelse(is.na(cases) | cases == 0, NA, cases)
-        ) %>% 
-    arrange(cases)
-
-
-plot_map_covid_cases <-
-    df_map_covid_cases %>%
-    ggplot() +
-    geom_sf(color = NA, fill = NA) +
-    geom_point(
-        aes(
-            y = latitude, x = longitude,
-            size = cases, fill = cases
-            ),
-        stroke = 0.2, shape = 21, alpha = 0.9) +
-    scale_size_continuous(
-        breaks = c(200, 1000, 5000, 25000, 55000),
-        limit = c(1, 60000),
-        name = "",
-        labels = scales::comma_format()
-        ) +
-    scale_fill_gradient(
-        breaks = c(200, 1000, 5000, 25000, 55000),
-        limit = c(1, 60000),
-        low = "paleturquoise1",
-        high = "navyblue",
-        name = "",
-        labels = scales::comma_format(),
-        guide = "legend"
-        ) +
-    geom_sf(data = shp_brasil_reg, fill = NA, size = 0.4) +
-    geom_sf(data = shp_brasil_uf, fill = NA, size = 0.1) +
-    labs(
-        title = paste0("Epidemiological weeks ", weeks[1], "-", weeks[2])
-         ) +
-    coord_sf() +
-    theme_void() +
-    theme(
-        title = element_text(size = 6),
-        plot.title = element_text(hjust = 0.5),
-        plot.margin = unit(c(-0.1, -0.15, -0.5, -0.15), "cm"),
-        legend.text = element_text(size = 7)
+        arrange(notif)
+    
+    
+    plot_map_srag_adults_pcr <- 
+        df_map_srag_adults_pcr %>% 
+        ggplot() +
+        geom_sf(color = NA, fill = NA) +
+        geom_point(aes(y = latitude, x = longitude,
+                       size = notif, fill = notif), 
+                   stroke = 0.2, shape = 21, alpha = 0.9) +
+        scale_size_continuous(
+            breaks = c(50, 200, 1000, 5000, 12000),
+            limit = c(1, 13000),
+            name = "",
+            labels = scales::comma_format(),
+            # labels = c("\u2264 40", "41-200", "201-1,000", "\u2265 1,000"),
+            ) +
+        scale_fill_gradient(
+            breaks = c(50, 200, 1000, 5000, 12000),
+            limit = c(1, 12900),
+            low = "lightyellow1", 
+            high = "darkgreen",
+            name = "",
+            labels = scales::comma_format(),
+            # labels = c("\u2264 400", "401-2,000", "2,001-10,000", "\u2265 50,000"),
+            guide = "legend"
+            ) +
+        geom_sf(data = shp_brasil_reg, fill = NA, size = 0.4) +
+        geom_sf(data = shp_brasil_uf, fill = NA, size = 0.1) +
+        coord_sf(xlim = c(NA, -33), expand = FALSE) +
+        theme_void() +
+        theme(title = element_text(size = 8),
+              plot.title = element_text(hjust = 0.5),
+              plot.margin = unit(c(-0.1, 0.09, 0, 0.32), "cm"),
+              legend.text = element_text(size = 7)
+              
         )
-
-
-    ls_covid_plots[[w]] <- plot_map_covid_cases
-
+    
+        ls_srag_adults_pcr_plots[[w]] <- plot_map_srag_adults_pcr
+    
+        
+        
+        
+        
+        
+        
+        
+        
+### Map: COVID-19 in-hospital deaths (SARI database)
+    df_srag_adults_pcr_deaths_week <- 
+        srag_adults_pcr %>%
+        filter(EVOLUCAO == "Death") %>% 
+        mutate(epi_week = lubridate::epiweek(date_int)) %>% 
+        filter(between(epi_week, weeks[1], weeks[2])) %>% 
+        group_by(CO_MU_INTE) %>%
+        summarise(deaths = n()) %>%
+        ungroup() %>% 
+        mutate(had_covid = 1)
+    
+    
+    df_map_srag_adults_pcr_deaths <- 
+        shp_brasil_mun_centr %>%
+        mutate(code_muni_6dig = str_sub(code_muni, 1, 6)) %>%
+        left_join(df_srag_adults_pcr_deaths_week %>%
+                      mutate_at("CO_MU_INTE", as.character),
+                  by = c("code_muni_6dig" = "CO_MU_INTE")
+        ) %>% 
+        mutate(had_covid = ifelse(is.na(had_covid), 0, 1),
+               deaths = ifelse(is.na(deaths) | deaths == 0, NA, deaths)
+        ) %>% 
+        arrange(deaths)
     
     
     
+    plot_map_srag_adults_pcr_deaths <- 
+        df_map_srag_adults_pcr_deaths %>% 
+        ggplot() +
+        geom_sf(color = NA, fill = NA) +
+        geom_point(aes(y = latitude, x = longitude,
+                       size = deaths, fill = deaths), 
+                   stroke = 0.2, shape = 21, alpha = 0.9) +
+        scale_size_continuous(
+            breaks = c(10, 50, 300, 1500, 3500),
+            limit = c(1, 3500),
+            name = "",
+            labels = scales::comma_format()) +
+        scale_fill_gradient(
+            breaks = c(10, 50, 300, 1500, 3500),
+            limit = c(1, 3500),
+            low = "mistyrose", 
+            high = "red4",
+            name = "",
+            labels = scales::comma_format(),
+            guide = "legend") +
+        geom_sf(data = shp_brasil_reg, fill = NA, size = 0.4) +
+        geom_sf(data = shp_brasil_uf, fill = NA, size = 0.1) +
+        coord_sf(xlim = c(NA, -33), expand = FALSE) +
+        theme_void() +
+        theme(title = element_text(size = 8),
+              plot.title = element_text(hjust = 0.5),
+              plot.margin = unit(c(-0.1, 0.07, 0, 0.37), "cm"),
+              legend.text = element_text(size = 7)
+        )
     
     
-    
-    
-    
-## Map: COVID-19 Hospitalizations (SARI database)
-    
-df_srag_adults_pcr_week <- 
-    srag_adults_pcr %>%
-    mutate(epi_week = lubridate::epiweek(date_int)) %>% 
-    filter(between(epi_week, weeks[1], weeks[2])) %>% 
-    group_by(CO_MU_INTE) %>%
-    summarise(notif = n()) %>%
-    ungroup() %>% 
-    mutate(had_covid = 1)
-
-
-df_map_srag_adults_pcr <- 
-    shp_brasil_mun_centr %>%
-    mutate(code_muni_6dig = str_sub(code_muni, 1, 6)) %>%
-    left_join(df_srag_adults_pcr_week %>%
-                  mutate_at("CO_MU_INTE", as.character),
-              by = c("code_muni_6dig" = "CO_MU_INTE")
-              ) %>% 
-    mutate(had_covid = ifelse(is.na(had_covid), 0, 1),
-           notif = ifelse(is.na(notif) | notif == 0, NA, notif)
-    ) %>% 
-    arrange(notif)
-
-
-plot_map_srag_adults_pcr <- 
-    df_map_srag_adults_pcr %>% 
-    ggplot() +
-    geom_sf(color = NA, fill = NA) +
-    geom_point(aes(y = latitude, x = longitude,
-                   size = notif, fill = notif), 
-               stroke = 0.2, shape = 21, alpha = 0.9) +
-    scale_size_continuous(
-        breaks = c(50, 200, 1000, 5000, 12000),
-        limit = c(1, 13000),
-        name = "",
-        labels = scales::comma_format(),
-        # labels = c("\u2264 40", "41-200", "201-1,000", "\u2265 1,000"),
-        ) +
-    scale_fill_gradient(
-        breaks = c(50, 200, 1000, 5000, 12000),
-        limit = c(1, 12900),
-        low = "lightyellow1", 
-        high = "darkgreen",
-        name = "",
-        labels = scales::comma_format(),
-        # labels = c("\u2264 400", "401-2,000", "2,001-10,000", "\u2265 50,000"),
-        guide = "legend"
-        ) +
-    geom_sf(data = shp_brasil_reg, fill = NA, size = 0.4) +
-    geom_sf(data = shp_brasil_uf, fill = NA, size = 0.1) +
-    coord_sf() +
-    theme_void() +
-    theme(title = element_text(size = 8),
-          plot.title = element_text(hjust = 0.5),
-          plot.margin = unit(c(-0.15, 0, -0.5, -0.2), "cm"),
-          legend.text = element_text(size = 7)
-          
-    )
-
-    ls_srag_adults_pcr_plots[[w]] <- plot_map_srag_adults_pcr
-
-    
-    
-    
-    
-    
-    
-    
-    
-## Map: COVID-19 in-hospital deaths (SARI database)
-df_srag_adults_pcr_deaths_week <- 
-    srag_adults_pcr %>%
-    filter(EVOLUCAO == "Death") %>% 
-    mutate(epi_week = lubridate::epiweek(date_int)) %>% 
-    filter(between(epi_week, weeks[1], weeks[2])) %>% 
-    group_by(CO_MU_INTE) %>%
-    summarise(deaths = n()) %>%
-    ungroup() %>% 
-    mutate(had_covid = 1)
-
-
-df_map_srag_adults_pcr_deaths <- 
-    shp_brasil_mun_centr %>%
-    mutate(code_muni_6dig = str_sub(code_muni, 1, 6)) %>%
-    left_join(df_srag_adults_pcr_deaths_week %>%
-                  mutate_at("CO_MU_INTE", as.character),
-              by = c("code_muni_6dig" = "CO_MU_INTE")
-    ) %>% 
-    mutate(had_covid = ifelse(is.na(had_covid), 0, 1),
-           deaths = ifelse(is.na(deaths) | deaths == 0, NA, deaths)
-    ) %>% 
-    arrange(deaths)
-
-
-
-plot_map_srag_adults_pcr_deaths <- 
-    df_map_srag_adults_pcr_deaths %>% 
-    ggplot() +
-    geom_sf(color = NA, fill = NA) +
-    geom_point(aes(y = latitude, x = longitude,
-                   size = deaths, fill = deaths), 
-               stroke = 0.2, shape = 21, alpha = 0.9) +
-    scale_size_continuous(
-        breaks = c(10, 50, 300, 1500, 3500),
-        limit = c(1, 3500),
-        name = "",
-        labels = scales::comma_format()) +
-    scale_fill_gradient(
-        breaks = c(10, 50, 300, 1500, 3500),
-        limit = c(1, 3500),
-        low = "mistyrose", 
-        high = "red4",
-        name = "",
-        labels = scales::comma_format(),
-        guide = "legend") +
-    geom_sf(data = shp_brasil_reg, fill = NA, size = 0.4) +
-    geom_sf(data = shp_brasil_uf, fill = NA, size = 0.1) +
-    coord_sf() +
-    theme_void() +
-    theme(title = element_text(size = 8),
-          plot.title = element_text(hjust = 0.5),
-          plot.margin = unit(c(-0.15, 0, -0.5, -0.2), "cm"),
-          legend.text = element_text(size = 7)
-          
-    )
-
-
     ls_srag_adults_pcr_deaths_plots[[w]] <- plot_map_srag_adults_pcr_deaths
 
 
     
 } # end of loop
-
-
-
-## Combining plots per type of variable (Weekly maps for each variable)
-comb_plot_covid <- 
-    ggpubr::ggarrange(
-        ls_covid_plots[[1]], 
-        ls_covid_plots[[2]], 
-        ls_covid_plots[[3]],
-        align = "h",
-        nrow = 1, ncol = 3, common.legend = TRUE, legend = "right"
-    )
-
-
-comb_plot_srag_adults_pcr <- 
-    ggpubr::ggarrange(
-        ls_srag_adults_pcr_plots[[1]], 
-        ls_srag_adults_pcr_plots[[2]], 
-        ls_srag_adults_pcr_plots[[3]],
-        align = "h",
-        nrow = 1, ncol = 3, common.legend = TRUE, legend = "right"
-    )
-    
-comb_plot_srag_adults_pcr_deaths <- 
-    ggpubr::ggarrange(
-        ls_srag_adults_pcr_deaths_plots[[1]], 
-        ls_srag_adults_pcr_deaths_plots[[2]], 
-        ls_srag_adults_pcr_deaths_plots[[3]],
-        align = "h",
-        nrow = 1, ncol = 3, common.legend = TRUE, legend = "right"
-        )
-
-
-## Combining all maps in a 3x3 panel
-comb_plot_maps <- 
-    ggpubr::ggarrange(
-        comb_plot_covid,
-        comb_plot_srag_adults_pcr,
-        comb_plot_srag_adults_pcr_deaths,
-        align = "v",
-        nrow = 3, ncol = 1
-        )
-
-
-
-ggsave("Outputs/Figures/Maps/plot_covid_maps.png",
-       comb_plot_maps,
-       width = 7, height = 6, units = "in", dpi = 600)
-
-
 
 
 
@@ -391,36 +347,85 @@ plot_mini_map_brazil_regions <-
     mutate(REGIAO = factor(name_region,
                            levels = c("North", "Northeast", "Central-West",
                                       "Southeast", "South"))
-           ) %>%
+    ) %>%
     ggplot() +
     geom_sf(aes(fill = REGIAO)) +
     scale_fill_manual(values = v_color_regions,
                       guide = FALSE) +
     geom_sf(data = shp_brasil_uf, fill = NA, size = 0.2) +
-    # geom_hline(aes(yintercept = 0), linetype = "dashed") +
-    # annotate("text", x = -30, y = 1,
-    #          label = "Equator", size = 3) +
-    # geom_hline(aes(yintercept = -23.4366), linetype = "dashed") +
-    # annotate("text", x = -33, y = -23.4366 + 1,
-    #          label = "Tropic of Capricorn", size = 3) +
-    # labs(y = "Latitude", x = "Longitude") +
+    coord_sf(xlim = c(NA, -34), expand = FALSE) +
     theme_void() +
     theme(
         plot.background = element_rect(fill = "transparent", color = NA),
+    )
+
+
+
+## Combining plots per type of variable (Weekly maps for each variable)
+## each row is one information of covid cases, and each columne a epi week
+
+## First row: Confirmed Cases (Brasil.IO)
+comb_plot_covid <- 
+    ggpubr::annotate_figure(
+        ggpubr::ggarrange(
+            ls_covid_plots[[1]],
+            ls_covid_plots[[2]],
+            ls_covid_plots[[3]] +
+                annotation_custom(ggplotGrob(plot_mini_map_brazil_regions), 
+                                  xmin = -30, xmax = -20, 
+                                  ymin = 7.5, ymax = -2.5),
+            align = "hv",
+            nrow = 1, ncol = 3, common.legend = TRUE, legend = "right"
+            ), 
+        left = "Confirmed Cases"
         )
 
 
-ggsave("Outputs/Figures/Maps/plot_mini_map_brazil_aux.png",
-       plot_mini_map_brazil_regions,  
-       bg = "transparent",
-       width = 2, height = 1, units = "in", dpi = 800)
+
+## Second row: COVID Hospitalizations
+comb_plot_srag_adults_pcr <- 
+    ggpubr::annotate_figure(
+        ggpubr::ggarrange(
+            ls_srag_adults_pcr_plots[[1]], 
+            ls_srag_adults_pcr_plots[[2]], 
+            ls_srag_adults_pcr_plots[[3]],
+            align = "hv",
+            nrow = 1, ncol = 3, common.legend = TRUE, legend = "right"
+        ),
+        left = "Hospitalisations"
+    )
 
 
 
+## Third row: COVID In-hospital deaths 
+comb_plot_srag_adults_pcr_deaths <- 
+    ggpubr::annotate_figure(
+        ggpubr::ggarrange(
+            ls_srag_adults_pcr_deaths_plots[[1]], 
+            ls_srag_adults_pcr_deaths_plots[[2]], 
+            ls_srag_adults_pcr_deaths_plots[[3]],
+            align = "hv",
+            nrow = 1, ncol = 3, common.legend = TRUE, legend = "right"
+        ),
+        left = "In-hospital deaths"
+    )
 
 
+## Combining all maps in a 3x3 panel (variables x epidemiological weeks)
+comb_plot_maps <-
+    ggpubr::ggarrange(
+        comb_plot_covid,
+        comb_plot_srag_adults_pcr,
+        comb_plot_srag_adults_pcr_deaths,
+        align = "hv",
+        nrow = 3, ncol = 1
+        ) 
 
 
+# Export plots
+ggsave("Outputs/Figures/Maps/Figure1_Brazil_Map_Weeks.pdf",
+       comb_plot_maps,
+       width = 7, height = 6, units = "in", dpi = 800)
 
 
 
@@ -436,6 +441,8 @@ ggsave("Outputs/Figures/Maps/plot_mini_map_brazil_aux.png",
 
 
 # Rates per 100k inhabitants ----------------------------------------------
+
+### Calculating total populations (<20 y.o. + adults) per region
 df_pop_ibge_2020_reg_total <- 
     read_csv2("Data/pop_ibge_proj_2020_gender.csv") %>%
     bind_rows(
@@ -462,12 +469,14 @@ df_pop_ibge_2020_reg_total <-
     ungroup() 
 
 
+
+### Calculating total populations (only adults) per region
 df_pop_ibge_2020_reg_adults <- 
     df_pop_ibge_2020_reg_total %>% 
     filter(FAIXA_IDADE != "<20")
 
 
-
+### Calculating total population (only adults) per sex and per region 
 df_br_pop_rate_adults_gender_age <- 
     df_pop_ibge_2020_reg_adults %>% 
     filter(FAIXA_IDADE != "<20", REGIAO == "Brazil") %>%  
@@ -477,15 +486,16 @@ df_br_pop_rate_adults_gender_age <-
 
 
 
-
+## list for storing calculated statistics
 ls_week_stats <- list()
-# ls_week_stats_age_sex <- list()
 
 
+## Loops per epidemiological weeks
 for (w in seq_along(ls_weeks)) {
     
     weeks <- ls_weeks[[w]]
     
+    ## Calculates rates per 100k population
     df_stats_100k <- 
         bind_rows(
             df_covid_cases_total %>%
@@ -534,6 +544,9 @@ for (w in seq_along(ls_weeks)) {
                 group_by(REGIAO) %>% 
                 summarise(POP_TOTAL_ADULT = sum(POP))
         ) %>% 
+        
+        ## For confirmed cases, the total population is used (there's is no age filter for confirmed cases)
+        ## For hospitalizations and in-hospital deaths, adult population is used 
         mutate(
             total_100k = case_when(
                 type == "covid_cases" ~ (total / POP_TOTAL) * 100000,
@@ -543,8 +556,9 @@ for (w in seq_along(ls_weeks)) {
     
     
     
-    
-    
+    ## Calculates rates per 100k population adjusted by age and sex
+    ## Rates were calculated for each region, using the Brazilian population as the reference population
+    ## There are no rates for confirmed cases since there is no data of confirmed cases stratified per age 
     df_stats_100k_age_sex <- 
         bind_rows(
             srag_adults_pcr %>%
@@ -585,7 +599,6 @@ for (w in seq_along(ls_weeks)) {
         ) %>% 
         group_by(REGIAO, type, weeks) %>% 
         summarise(
-            # total_100k =  100000 * (sum(total) / sum(POP)),
             total_100k_age_sex = 100000 * (sum(EXP_POP) / sum(POP_BRAZIL))
         ) %>% 
         ungroup() 
@@ -596,13 +609,11 @@ for (w in seq_along(ls_weeks)) {
             df_stats_100k_age_sex,
             by = c("REGIAO" = "REGIAO", "type" = "type", "weeks" = "weeks")
         )
-    # ls_week_stats_age_sex[[w]] <- df_stats_100k_age_sex
-}
+    }
 
 
 
-# Calculating rates for the overall sample
-
+# Calculating rates for the overall sample (defined as the fourth object in the list)
 ls_week_stats[[4]] <- 
     left_join(
         bind_rows(
@@ -699,6 +710,7 @@ ls_week_stats[[4]] <-
     )
 
 
+## Combining all information into one data.frame
 df_week_stats <- 
     bind_rows(ls_week_stats) %>% 
     pivot_longer(c(-REGIAO, -type, -weeks), names_to = "stats", values_to = "values") %>% 
@@ -707,5 +719,5 @@ df_week_stats <-
     
 
 
-
-write_excel_csv(df_week_stats, "Outputs/Tables/df_week_stats.csv")
+## Exporting statistics per epidemiological week and region
+write_excel_csv(df_week_stats, "Outputs/Tables/Rates_Population_AgeSexAdj.csv")
