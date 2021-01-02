@@ -112,13 +112,16 @@ df_cnes_estab_leitos_adultos <-
     df_cnes_estab %>% 
     select(CO_UNIDADE, CO_CNES, CO_ESTADO_GESTOR, NO_BAIRRO, CO_REGIAO_SAUDE, CO_MICRO_REGIAO, 
            TP_UNIDADE, CO_NATUREZA_JUR, 
-           TP_GESTAO, CO_TIPO_ESTABELECIMENTO, TP_UNIDADE) %>% 
+           TP_GESTAO, CO_TIPO_ESTABELECIMENTO, TP_UNIDADE, CO_MUNICIPIO_GESTOR) %>% 
     left_join(df_cnes_leitos_tipo,
               by = c("CO_UNIDADE" = "CO_UNIDADE")) %>% 
     left_join(df_estados, 
               by = c("CO_ESTADO_GESTOR" = "CO_UF")) %>% 
-    select(-c(CO_ESTADO_GESTOR, NO_DESCRICAO)) %>% 
-    select(CO_UNIDADE, CO_CNES, CO_SIGLA, everything())
+    left_join(df_dados_capitais %>% 
+                  mutate(codigo_ibge_6dig = as.numeric(codigo_ibge_6dig)), 
+              by = c("CO_MUNICIPIO_GESTOR" = "codigo_ibge_6dig")) %>% 
+    # select(-c(CO_MUNICIPIO_GESTOR, codigo_ibge_6dig)) %>%
+    select(CO_UNIDADE, CO_CNES, CO_SIGLA, capital, everything())
 
 
 # Exports CNES beds data
@@ -147,9 +150,22 @@ df_leitos_reg_adultos <-
     select(month, var_adulto, everything())
 
 
+
+# Exports CNES beds data - Capital/Non-capital
+df_leitos_reg_adultos_capital <- 
+    df_cnes_estab_leitos_adultos %>% 
+    bind_rows(df_cnes_estab_leitos_adultos %>% 
+                  mutate(REGIAO = "Brazil")) %>% 
+    group_by(REGIAO, capital) %>% 
+    summarise(adult_beds = sum(total_beds, na.rm = TRUE),
+              adult_beds_ICU = sum(ICU_adult, na.rm = TRUE)) %>% 
+    mutate(proportion = round(100*(adult_beds_ICU/sum(adult_beds_ICU)))) %>% 
+    ungroup() %>% 
+    select(-capital)
+
     
 
-write_csv(df_leitos_reg_adultos, "Outputs/Tables/df_ICU_beds_CNES.csv")
+write_csv(df_leitos_reg_adultos_capital, "Outputs/Tables/df_ICU_beds_CNES_capital.csv")
 
 
 
