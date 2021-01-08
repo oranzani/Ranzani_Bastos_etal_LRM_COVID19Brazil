@@ -31,7 +31,7 @@ df_srag_adults_pcr = vroom::vroom("Data/srag_adults_pcr_12_10.csv") %>%
          REGIAO, n_comorb_mreal, SATURACAO, DISPNEIA, DESC_RESP, 
          SRAG_original, SRAG_sfebre, IS_CAPITAL) %>% 
   mutate(CS_SEXO = factor(CS_SEXO, levels = c("Male", "Female"))) %>%
-  mutate(CS_RACA = factor(CS_RACA, levels = c("White", "Black/Mixed", "Asian", "Indigenous"))) %>% 
+  mutate(CS_RACA = factor(CS_RACA, levels = c("White", "Black/Brown", "Asian", "Indigenous"))) %>% 
   mutate(CS_ESCOL_N = factor(CS_ESCOL_N, levels = c("Illiterate", "Up to high school", "High school", "College/University"))) %>%
   mutate(REGIAO = factor(REGIAO, levels = c("North", "Northeast", "Central-West", "Southeast", "South"))) %>%
   mutate(n_comorb_mreal = factor(n_comorb_mreal, levels = c(0, 1, 2), labels = c("No comorbidites", "1-2",">=3"))) %>% 
@@ -40,7 +40,7 @@ df_srag_adults_pcr = vroom::vroom("Data/srag_adults_pcr_12_10.csv") %>%
 
 # Descriptive Table
 lista_labels = list(HOSPITAL ~ "Total, No (%)",
-                    CS_SEXO ~ "Male sex, No. (%)",
+                    CS_SEXO ~ "Sex, No. (%)",
                     NU_IDADE_N ~ "Age, mean (sd)",
                     NU_IDADE_N_2 ~ "median (IQR)",
                     FAIXA_IDADE ~ "Age group, No. (%)",
@@ -82,8 +82,8 @@ descritiva = table1$table_body %>%
 descritiva[1,1] = "Total, No"
 descritiva[1,2:7] = descritiva[2,2:7]
 descritiva = descritiva[-c(2),]
-descritiva[11,2:7] = descritiva[12,2:7]
-descritiva = descritiva[-c(12,13),]
+# descritiva[11,2:7] = descritiva[12,2:7]
+# descritiva = descritiva[-c(12,13),]
 
 # exporting files
 
@@ -106,7 +106,7 @@ df_srag_adults_covid = vroom::vroom("Data/srag_adults_covid_12_10.csv") %>%
          REGIAO, n_comorb_mreal, SATURACAO, DISPNEIA, DESC_RESP, 
          SRAG_original, SRAG_sfebre, IS_CAPITAL) %>% 
   mutate(CS_SEXO = factor(CS_SEXO, levels = c("Male", "Female"))) %>%
-  mutate(CS_RACA = factor(CS_RACA, levels = c("White", "Black/Mixed", "Asian", "Indigenous"))) %>% 
+  mutate(CS_RACA = factor(CS_RACA, levels = c("White", "Black/Brown", "Asian", "Indigenous"))) %>% 
   mutate(CS_ESCOL_N = factor(CS_ESCOL_N, levels = c("Illiterate", "Up to high school", "High school", "College/University"))) %>%
   mutate(REGIAO = factor(REGIAO, levels = c("North", "Northeast", "Central-West", "Southeast", "South"))) %>%
   mutate(n_comorb_mreal = factor(n_comorb_mreal, levels = c(0, 1, 2), labels = c("No comorbidites", "1-2",">=3"))) %>% 
@@ -142,8 +142,8 @@ descritiva_sensibilidade = table2$table_body %>%
 descritiva_sensibilidade[1,1] = "Total, No"
 descritiva_sensibilidade[1,2:7] = descritiva_sensibilidade[2,2:7]
 descritiva_sensibilidade = descritiva_sensibilidade[-c(2),]
-descritiva_sensibilidade[11,2:7] = descritiva_sensibilidade[12,2:7]
-descritiva_sensibilidade = descritiva_sensibilidade[-c(12,13),]
+# descritiva_sensibilidade[11,2:7] = descritiva_sensibilidade[12,2:7]
+# descritiva_sensibilidade = descritiva_sensibilidade[-c(12,13),]
 
 # exporting files
 
