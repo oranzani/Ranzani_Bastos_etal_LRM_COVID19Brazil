@@ -6,6 +6,9 @@ Authors: Otavio T. Ranzani (oranzani), Leonardo S. L. Bastos (lslbastos), João 
 Janaina F. Marchesi, Fernanda Baião, Silvio Hamacher, Fernando A. Bozza
 
 Published at: The Lancet Respiratory Medicine
+
 URL: https://www.thelancet.com/journals/lanres/article/PIIS2213-2600(20)30560-9/fulltext
+
 DOI: https://doi.org/10.1016/S2213-2600(20)30560-9
+
 Date: January 15, 2021
