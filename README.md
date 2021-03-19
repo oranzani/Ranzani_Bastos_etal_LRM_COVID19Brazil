@@ -1,6 +1,6 @@
 # Characterisation of the first 250 000 hospital admissions for COVID-19 in Brazil: a retrospective analysis of nationwide
 
-Data, code and results from the reserach paper: "Characterisation of the first 250 000 hospital admissions for COVID-19 in Brazil: a retrospective analysis of nationwide"
+Data, code and results from the research paper: "Characterisation of the first 250 000 hospital admissions for COVID-19 in Brazil: a retrospective analysis of nationwide"
 
 Authors: Otavio T. Ranzani (oranzani), Leonardo S. L. Bastos (lslbastos), João Gabriel M Gelli,
 Janaina F. Marchesi, Fernanda Baião, Silvio Hamacher, Fernando A. Bozza
